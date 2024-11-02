@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload Pictures</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"> <!-- Importing Google Font -->
+  <style>
+    /* Basic styling for the upload page */
+    body {
+      font-family: 'Roboto', sans-serif; /* Using Roboto font */
+      background-color: #f0f0f0; /* Light gray background */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Adding shadow to body */
+    }
+    h1 {
+      color: #ff914d;
+      margin-bottom: 20px;
+      font-size: 2.5em; /* Larger font size for header */
+      text-align: center; /* Centering text */
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); /* Adding shadow for depth */
+    }
+    /* Styling for input fields and buttons */
+    input[type="file"],
+    input[type="text"],
+    textarea,
+    button {
+      padding: 10px;
+      margin: 10px 0; /* Increased margin for better spacing */
+      border-radius: 8px;
+      border: 1px solid #ff914d; /* Border color */
+      width: 100%;
+      max-width: 400px; /* Max width for inputs */
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Box shadow for depth */
+      transition: border-color 0.3s; /* Transition for focus effect */
+      font-size: 1em; /* Uniform font size */
+    }
+    /* Focus effect for input fields */
+    input[type="text"]:focus,
+    textarea:focus,
+    input[type="file"]:focus {
+      border-color: #0081F3; /* Change border color on focus */
+      outline: none; /* Remove default outline */
+    }
+    /* Styling for the button */
+    button {
+      background-color: #ff914d; /* Button background color */
+      color: white; /* Button text color */
+      cursor: pointer; /* Pointer cursor for button */
+      font-weight: bold; /* Bold button text */
+      transition: background-color 0.3s; /* Transition for hover effect */
+    }
+    button:hover {
+      background-color: #ffaf4d; /* Button hover color */
+    }
+    /* Styling for the textarea */
+    textarea {
+      resize: vertical; /* Allow vertical resize */
+      height: 100px; /* Fixed height for textarea */
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Upload Pictures</h1>
+  <input type="file" id="imageUpload" accept="image/*" multiple>
+  <input type="text" id="description" placeholder="Add a description">
+  <textarea id="story" placeholder="Write a story..." rows="4"></textarea>
+  <button onclick="saveImages()">Save Pictures</button>
+
+  <script>
+    function saveImages() {
+        const fileInput = document.getElementById('imageUpload');
+        const descriptionInput = document.getElementById('description').value.trim();
+        const storyInput = document.getElementById('story').value.trim();
+        const files = fileInput.files;
+        const dateUploaded = new Date().toLocaleDateString();
+
+        if (files.length === 0) return alert("Please select at least one picture!");
+
+        const images = JSON.parse(localStorage.getItem('images')) || [];
+
+        Array.from(files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                images.push({
+                    src: e.target.result,
+                    description: descriptionInput || "No description",
+                    story: storyInput || "No story provided",
+                    date: dateUploaded
+                });
+                localStorage.setItem('images', JSON.stringify(images));
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Redirect to gallery page after a short delay to ensure saving is complete
+        setTimeout(() => {
+            window.location.href = "gallery.html";
+        }, 100);
+    }
+  </script>
+
+</body>
+</html>

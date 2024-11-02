@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Picture Gallery</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /* General gallery styling */
+    body {
+      font-family: 'Roboto', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      background-color: #f3f4f6;
+    }
+    h1 {
+      color: #ff914d;
+      margin-bottom: 20px;
+    }
+    #gallery {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+      width: 100%;
+      max-width: 800px;
+      margin-top: 20px;
+    }
+    .image-container {
+      width: 150px;
+      text-align: center;
+      padding-bottom: 10px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      background-color: #fff;
+      cursor: grab;
+      position: relative;
+      transition: transform 0.2s, box-shadow 0.2s; /* Added transition for hover effect */
+    }
+    .image-container:hover {
+      transform: scale(1.05); /* Slight zoom effect on hover */
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3); /* Stronger shadow on hover */
+    }
+    .image-container img {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+    }
+    .description, .date-uploaded {
+      font-size: 0.9em;
+      color: #666;
+      margin-top: 5px;
+    }
+    .delete-btn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background-color: red;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      padding: 2px 5px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background-color 0.3s; /* Smooth background color transition */
+    }
+    .delete-btn:hover {
+      background-color: darkred; /* Darker red on hover */
+    }
+
+    /* Recycle Bin Styling */
+    #recycleBin {
+      width: 200px;
+      height: 100px; 
+      border: 2px dashed #ff914d;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 20px; 
+      color: #ff914d;
+      font-weight: bold;
+      opacity: 0.8;
+      position: fixed; 
+      bottom: 20px; 
+      left: 20px; 
+      z-index: 1000; 
+    }
+
+    /* Modal styling */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.8);
+      justify-content: center;
+      align-items: center;
+      transition: opacity 0.3s ease; /* Smooth modal appearance */
+    }
+    .modal-content {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 500px;
+      text-align: center;
+      position: relative;
+      animation: slideIn 0.3s ease; /* Animation for modal content */
+    }
+    @keyframes slideIn {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .modal-content img {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .close-btn, .prev-btn, .next-btn {
+      position: absolute;
+      top: 10px;
+      font-size: 24px;
+      color: #ff914d;
+      cursor: pointer;
+      transition: color 0.3s; /* Smooth color transition for buttons */
+    }
+    .close-btn { right: 10px; }
+    .prev-btn { left: 10px; top: 50%; transform: translateY(-50%); }
+    .next-btn { right: 10px; top: 50%; transform: translateY(-50%); }
+    .modal-description, .modal-story, .modal-date {
+      font-size: 1em;
+      color: #333;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>My Picture Gallery</h1>
+  <div id="gallery"></div>
+
+  <!-- Recycle Bin Area -->
+  <div id="recycleBin" ondragover="allowDrop(event)" ondrop="drop(event)">
+    Drop here to delete
+  </div>
+
+  <!-- Modal Structure -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn" onclick="closeModal()">×</span>
+      <span class="prev-btn" onclick="prevImage()">❮</span>
+      <span class="next-btn" onclick="nextImage()">❯</span>
+      <img id="modalImage" src="" alt="Enlarged Picture">
+      <div class="modal-description" id="modalDescription"></div>
+      <div class="modal-story" id="modalStory"></div>
+      <div class="modal-date" id="modalDate"></div>
+    </div>
+  </div>
+
+  <script>
+    let currentImageIndex = 0;
+    let images = [];
+
+    function displayImages() {
+      const gallery = document.getElementById('gallery');
+      gallery.innerHTML = '';
+      images = JSON.parse(localStorage.getItem('images')) || [];
+
+      images.forEach((image, index) => {
+          const imageContainer = document.createElement('div');
+          imageContainer.classList.add('image-container');
+          imageContainer.setAttribute('draggable', 'true'); 
+          imageContainer.ondragstart = (event) => drag(event, index);
+          imageContainer.onclick = () => openModal(index);
+
+          const img = document.createElement('img');
+          img.src = image.src;
+          imageContainer.appendChild(img);
+
+          const descriptionEl = document.createElement('div');
+          descriptionEl.classList.add('description');
+          descriptionEl.innerText = image.description;
+          imageContainer.appendChild(descriptionEl);
+
+          const dateEl = document.createElement('div');
+          dateEl.classList.add('date-uploaded');
+          dateEl.innerText = `Uploaded on: ${image.date}`;
+          imageContainer.appendChild(dateEl);
+
+          gallery.appendChild(imageContainer);
+      });
+    }
+
+    function drag(event, index) {
+      event.dataTransfer.setData('text/plain', index); 
+    }
+
+    function allowDrop(event) {
+      event.preventDefault(); 
+    }
+
+    function drop(event) {
+      event.preventDefault();
+      const index = event.dataTransfer.getData('text/plain'); 
+      deleteImage(index); 
+    }
+
+    function deleteImage(index) {
+      images.splice(index, 1); 
+      localStorage.setItem('images', JSON.stringify(images)); 
+      displayImages(); 
+    }
+
+    function openModal(index) {
+      currentImageIndex = index;
+      updateModalContent();
+      document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('modal').style.display = 'none';
+    }
+
+    function prevImage() {
+      currentImageIndex = (currentImageIndex > 0) ? currentImageIndex - 1 : images.length - 1;
+      updateModalContent();
+    }
+
+    function nextImage() {
+      currentImageIndex = (currentImageIndex < images.length - 1) ? currentImageIndex + 1 : 0;
+      updateModalContent();
+    }
+
+    function updateModalContent() {
+      const image = images[currentImageIndex];
+      document.getElementById('modalImage').src = image.src;
+      document.getElementById('modalDescription').innerText = image.description;
+      document.getElementById('modalStory').innerText = `Story: ${image.story}`;
+      document.getElementById('modalDate').innerText = `Uploaded on: ${image.date}`;
+    }
+
+    // Load images on page load
+    window.onload = displayImages;
+  </script>
+
+</body>
+</html>
